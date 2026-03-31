@@ -44,4 +44,53 @@ function delay_ms(delay)::Cint
     return Cint(Dates.value(Dates.Millisecond(delay)))
 end
 
+# ── Mouse ──
+
+function click(x::Real, y::Real; button::Symbol=:left, count::Integer=1)
+    rc = ccall((:uc_click, libpath), Cint, (Cdouble, Cdouble, Cint, Cint),
+               Cdouble(x), Cdouble(y), button_int(button), Cint(count))
+    check(rc)
+end
+
+function mouse_move(x::Real, y::Real)
+    rc = ccall((:uc_mouse_move, libpath), Cint, (Cdouble, Cdouble), Cdouble(x), Cdouble(y))
+    check(rc)
+end
+
+function hover(x::Real, y::Real)
+    rc = ccall((:uc_hover, libpath), Cint, (Cdouble, Cdouble), Cdouble(x), Cdouble(y))
+    check(rc)
+end
+
+function mouse_down(; button::Symbol=:left)
+    rc = ccall((:uc_mouse_down, libpath), Cint, (Cint,), button_int(button))
+    check(rc)
+end
+
+function mouse_up(; button::Symbol=:left)
+    rc = ccall((:uc_mouse_up, libpath), Cint, (Cint,), button_int(button))
+    check(rc)
+end
+
+function mouse_position()
+    x = Ref{Cdouble}(0.0)
+    y = Ref{Cdouble}(0.0)
+    rc = ccall((:uc_mouse_position, libpath), Cint, (Ptr{Cdouble}, Ptr{Cdouble}), x, y)
+    check(rc)
+    return (x=x[], y=y[])
+end
+
+function drag(from::Tuple{Real,Real}, to::Tuple{Real,Real};
+              cp::Union{Tuple{Real,Real},Nothing}=nothing, button::Symbol=:left)
+    has_cp = cp !== nothing ? Cint(1) : Cint(0)
+    cp_x = cp !== nothing ? Cdouble(cp[1]) : Cdouble(0)
+    cp_y = cp !== nothing ? Cdouble(cp[2]) : Cdouble(0)
+    rc = ccall((:uc_drag, libpath), Cint,
+               (Cdouble, Cdouble, Cdouble, Cdouble, Cdouble, Cdouble, Cint, Cint),
+               Cdouble(from[1]), Cdouble(from[2]),
+               Cdouble(to[1]), Cdouble(to[2]),
+               cp_x, cp_y, has_cp, button_int(button))
+    check(rc)
+end
+
 end # module
