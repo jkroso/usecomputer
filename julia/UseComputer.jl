@@ -9,7 +9,11 @@ To test if the user did a cmd+click you write:
 
   key_state == Keys.cmd|Keys.mouse_left
 """
-#= punctuation =# @BitSet Keys tilde minus equal left_bracket right_bracket semicolon apostrophe comma period slash backslash times plus a b c d e f g h i j k l m n o p q r s t u v w x y z _0 _1 _2 _3 _4 _5 _6 _7 _8 _9 num0 num1 num2 num3 num4 num5 num6 num7 num8 num9 f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 f13 f14 f15 f16 f17 f18 f19 f20 f21 f22 f23 f24 f25 tab capslock enter shft cmd opt ctrl escape delete backspace space fn home pageup pagedown _end clear eject insert left right up down mouse_left mouse_right mouse_middle
+@BitSet Keys """
+  tilde minus equal left_bracket right_bracket semicolon apostrophe comma period slash backslash times plus 
+  a:z 0:9 num(0:9) f(1:25) tab capslock enter shft cmd opt ctrl escape delete backspace space fn home pageup 
+  pagedown _end clear eject insert left right up down mouse_left mouse_right mouse_middle
+"""
 
 struct Error <: Exception
   msg::String
@@ -18,7 +22,7 @@ Base.showerror(io::IO, e::Error) = print(io, "UseComputerError: ", e.msg)
 
 const ext = Sys.isapple() ? "dylib" : Sys.iswindows() ? "dll" : "so"
 const lib = joinpath(@__DIR__, "..", "zig-out", "lib", "libusecomputer_c.$ext")
-const BUTTONS = Dict(:left => Cint(0), :right => Cint(1), :middle => Cint(2))
+@Enum Button left right middle
 
 function lasterror()
   ptr = @ccall lib.uc_last_error()::Ptr{UInt8}
@@ -31,15 +35,15 @@ ms(d::Dates.Period) = Cint(Dates.value(Millisecond(d)))
 
 # Mouse
 
-function click(x::Real, y::Real; button::Symbol=:left, count::Integer=1)
+function click(x::Real, y::Real; button::Button=Button.left, count::Integer=1)
   check(@ccall lib.uc_click(Cdouble(x)::Cdouble, Cdouble(y)::Cdouble,
-                             BUTTONS[button]::Cint, Cint(count)::Cint)::Cint)
+                             Cint(Integer(button) - 1)::Cint, Cint(count)::Cint)::Cint)
 end
 
 move(x::Real, y::Real) = check(@ccall lib.uc_mouse_move(Cdouble(x)::Cdouble, Cdouble(y)::Cdouble)::Cint)
 hover(x::Real, y::Real) = check(@ccall lib.uc_hover(Cdouble(x)::Cdouble, Cdouble(y)::Cdouble)::Cint)
-hold(; button::Symbol=:left) = check(@ccall lib.uc_mouse_down(BUTTONS[button]::Cint)::Cint)
-release(; button::Symbol=:left) = check(@ccall lib.uc_mouse_up(BUTTONS[button]::Cint)::Cint)
+hold(; button::Button=Button.left) = check(@ccall lib.uc_mouse_down(Cint(Integer(button) - 1)::Cint)::Cint)
+release(; button::Button=Button.left) = check(@ccall lib.uc_mouse_up(Cint(Integer(button) - 1)::Cint)::Cint)
 
 function position()
   x = Ref{Cdouble}(0.0)
@@ -49,13 +53,13 @@ function position()
 end
 
 function drag(from::Tuple{Real,Real}, to::Tuple{Real,Real};
-              cp::Union{Tuple{Real,Real},Nothing}=nothing, button::Symbol=:left)
+              cp::Union{Tuple{Real,Real},Nothing}=nothing, button::Button=Button.left)
   check(@ccall lib.uc_drag(
     Cdouble(from[1])::Cdouble, Cdouble(from[2])::Cdouble,
     Cdouble(to[1])::Cdouble, Cdouble(to[2])::Cdouble,
     Cdouble(cp !== nothing ? cp[1] : 0)::Cdouble,
     Cdouble(cp !== nothing ? cp[2] : 0)::Cdouble,
-    Cint(cp !== nothing)::Cint, BUTTONS[button]::Cint)::Cint)
+    Cint(cp !== nothing)::Cint, Cint(Integer(button) - 1)::Cint)::Cint)
 end
 
 # Keyboard
