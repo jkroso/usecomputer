@@ -23,7 +23,7 @@ const libpath = joinpath(@__DIR__, "..", "..", "..", "zig-out", "lib", "libuseco
 # ── Helpers ──
 
 function last_error()
-    ptr = ccall((:uc_last_error, libpath), Ptr{UInt8}, ())
+    ptr = @ccall libpath.uc_last_error()::Ptr{UInt8}
     ptr == C_NULL ? "unknown error" : unsafe_string(ptr)
 end
 
@@ -47,35 +47,35 @@ end
 # ── Mouse ──
 
 function click(x::Real, y::Real; button::Symbol=:left, count::Integer=1)
-    rc = ccall((:uc_click, libpath), Cint, (Cdouble, Cdouble, Cint, Cint),
-               Cdouble(x), Cdouble(y), button_int(button), Cint(count))
+    rc = @ccall libpath.uc_click(Cdouble(x)::Cdouble, Cdouble(y)::Cdouble,
+                                  button_int(button)::Cint, Cint(count)::Cint)::Cint
     check(rc)
 end
 
 function mouse_move(x::Real, y::Real)
-    rc = ccall((:uc_mouse_move, libpath), Cint, (Cdouble, Cdouble), Cdouble(x), Cdouble(y))
+    rc = @ccall libpath.uc_mouse_move(Cdouble(x)::Cdouble, Cdouble(y)::Cdouble)::Cint
     check(rc)
 end
 
 function hover(x::Real, y::Real)
-    rc = ccall((:uc_hover, libpath), Cint, (Cdouble, Cdouble), Cdouble(x), Cdouble(y))
+    rc = @ccall libpath.uc_hover(Cdouble(x)::Cdouble, Cdouble(y)::Cdouble)::Cint
     check(rc)
 end
 
 function mouse_down(; button::Symbol=:left)
-    rc = ccall((:uc_mouse_down, libpath), Cint, (Cint,), button_int(button))
+    rc = @ccall libpath.uc_mouse_down(button_int(button)::Cint)::Cint
     check(rc)
 end
 
 function mouse_up(; button::Symbol=:left)
-    rc = ccall((:uc_mouse_up, libpath), Cint, (Cint,), button_int(button))
+    rc = @ccall libpath.uc_mouse_up(button_int(button)::Cint)::Cint
     check(rc)
 end
 
 function mouse_position()
     x = Ref{Cdouble}(0.0)
     y = Ref{Cdouble}(0.0)
-    rc = ccall((:uc_mouse_position, libpath), Cint, (Ptr{Cdouble}, Ptr{Cdouble}), x, y)
+    rc = @ccall libpath.uc_mouse_position(x::Ptr{Cdouble}, y::Ptr{Cdouble})::Cint
     check(rc)
     return (x=x[], y=y[])
 end
@@ -85,23 +85,22 @@ function drag(from::Tuple{Real,Real}, to::Tuple{Real,Real};
     has_cp = cp !== nothing ? Cint(1) : Cint(0)
     cp_x = cp !== nothing ? Cdouble(cp[1]) : Cdouble(0)
     cp_y = cp !== nothing ? Cdouble(cp[2]) : Cdouble(0)
-    rc = ccall((:uc_drag, libpath), Cint,
-               (Cdouble, Cdouble, Cdouble, Cdouble, Cdouble, Cdouble, Cint, Cint),
-               Cdouble(from[1]), Cdouble(from[2]),
-               Cdouble(to[1]), Cdouble(to[2]),
-               cp_x, cp_y, has_cp, button_int(button))
+    rc = @ccall libpath.uc_drag(Cdouble(from[1])::Cdouble, Cdouble(from[2])::Cdouble,
+                                 Cdouble(to[1])::Cdouble, Cdouble(to[2])::Cdouble,
+                                 cp_x::Cdouble, cp_y::Cdouble,
+                                 has_cp::Cint, button_int(button)::Cint)::Cint
     check(rc)
 end
 
 # ── Keyboard ──
 
 function type_text(text::AbstractString; delay::Union{Period,Nothing}=nothing)
-    rc = ccall((:uc_type_text, libpath), Cint, (Cstring, Cint), text, delay_ms(delay))
+    rc = @ccall libpath.uc_type_text(text::Cstring, delay_ms(delay)::Cint)::Cint
     check(rc)
 end
 
 function press(key::AbstractString; count::Integer=1, delay::Union{Period,Nothing}=nothing)
-    rc = ccall((:uc_press, libpath), Cint, (Cstring, Cint, Cint), key, Cint(count), delay_ms(delay))
+    rc = @ccall libpath.uc_press(key::Cstring, Cint(count)::Cint, delay_ms(delay)::Cint)::Cint
     check(rc)
 end
 
@@ -112,8 +111,8 @@ function scroll(direction::Symbol; amount::Integer=3, at::Union{Tuple{Real,Real}
     has_at = at !== nothing ? Cint(1) : Cint(0)
     at_x = at !== nothing ? Cdouble(at[1]) : Cdouble(0)
     at_y = at !== nothing ? Cdouble(at[2]) : Cdouble(0)
-    rc = ccall((:uc_scroll, libpath), Cint, (Cstring, Cint, Cdouble, Cdouble, Cint),
-               String(direction), Cint(amount), at_x, at_y, has_at)
+    rc = @ccall libpath.uc_scroll(String(direction)::Cstring, Cint(amount)::Cint,
+                                   at_x::Cdouble, at_y::Cdouble, has_at::Cint)::Cint
     check(rc)
 end
 
@@ -125,28 +124,28 @@ function screenshot(; path::Union{AbstractString,Nothing}=nothing,
     c_path = path === nothing ? C_NULL : path
     c_display = display === nothing ? Cint(-1) : Cint(display)
     c_window = window === nothing ? Cint(-1) : Cint(window)
-    ptr = ccall((:uc_screenshot, libpath), Ptr{UInt8}, (Cstring, Cint, Cint), c_path, c_display, c_window)
+    ptr = @ccall libpath.uc_screenshot(c_path::Cstring, c_display::Cint, c_window::Cint)::Ptr{UInt8}
     ptr == C_NULL && throw(UseComputerError(last_error()))
     result = JSON.parse(unsafe_string(ptr))
-    ccall((:uc_free, libpath), Cvoid, (Ptr{UInt8},), ptr)
+    @ccall libpath.uc_free(ptr::Ptr{UInt8})::Cvoid
     return result
 end
 
 # ── Queries ──
 
 function display_list()
-    ptr = ccall((:uc_display_list, libpath), Ptr{UInt8}, ())
+    ptr = @ccall libpath.uc_display_list()::Ptr{UInt8}
     ptr == C_NULL && throw(UseComputerError(last_error()))
     result = JSON.parse(unsafe_string(ptr))
-    ccall((:uc_free, libpath), Cvoid, (Ptr{UInt8},), ptr)
+    @ccall libpath.uc_free(ptr::Ptr{UInt8})::Cvoid
     return result
 end
 
 function window_list()
-    ptr = ccall((:uc_window_list, libpath), Ptr{UInt8}, ())
+    ptr = @ccall libpath.uc_window_list()::Ptr{UInt8}
     ptr == C_NULL && throw(UseComputerError(last_error()))
     result = JSON.parse(unsafe_string(ptr))
-    ccall((:uc_free, libpath), Cvoid, (Ptr{UInt8},), ptr)
+    @ccall libpath.uc_free(ptr::Ptr{UInt8})::Cvoid
     return result
 end
 
