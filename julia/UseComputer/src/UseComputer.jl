@@ -107,17 +107,13 @@ end
 
 # ── Scroll ──
 
-const DIRECTION_STRINGS = Dict{Symbol,String}(
-    :up => "up", :down => "down", :left => "left", :right => "right")
-
 function scroll(direction::Symbol; amount::Integer=3, at::Union{Tuple{Real,Real},Nothing}=nothing)
-    dir_str = get(DIRECTION_STRINGS, direction, nothing)
-    dir_str === nothing && throw(ArgumentError("direction must be :up, :down, :left, or :right, got :$direction"))
+    direction in (:up, :down, :left, :right) || throw(ArgumentError("direction must be :up, :down, :left, or :right, got :$direction"))
     has_at = at !== nothing ? Cint(1) : Cint(0)
     at_x = at !== nothing ? Cdouble(at[1]) : Cdouble(0)
     at_y = at !== nothing ? Cdouble(at[2]) : Cdouble(0)
     rc = ccall((:uc_scroll, libpath), Cint, (Cstring, Cint, Cdouble, Cdouble, Cint),
-               dir_str, Cint(amount), at_x, at_y, has_at)
+               String(direction), Cint(amount), at_x, at_y, has_at)
     check(rc)
 end
 

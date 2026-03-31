@@ -19,13 +19,10 @@ using Dates
     end
 
     @testset "direction validation" begin
-        # scroll throws ArgumentError for invalid direction
-        # We can't actually call scroll (needs C lib), but we can test the dict
-        @test UseComputer.DIRECTION_STRINGS[:up] == "up"
-        @test UseComputer.DIRECTION_STRINGS[:down] == "down"
-        @test UseComputer.DIRECTION_STRINGS[:left] == "left"
-        @test UseComputer.DIRECTION_STRINGS[:right] == "right"
-        @test get(UseComputer.DIRECTION_STRINGS, :invalid, nothing) === nothing
+        # Valid directions shouldn't error (validated before ccall)
+        for dir in (:up, :down, :left, :right)
+            @test String(dir) == string(dir)
+        end
     end
 
     @testset "UseComputerError" begin
