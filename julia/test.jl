@@ -1,5 +1,5 @@
 @use "github.com/jkroso/Rutherford.jl/test" testset @test @catch
-@use "./UseComputer" Error ms BUTTONS check
+@use "./UseComputer" Error ms BUTTONS check Direction
 @use Dates Millisecond Second Minute
 
 testset("UseComputer") do
@@ -16,6 +16,14 @@ testset("UseComputer") do
     @test ms(Millisecond(0)) == 0
     @test ms(Second(1)) == 1000
     @test ms(Minute(1)) == 60000
+  end
+
+  testset("Direction") do
+    @test Direction.up isa Direction
+    @test Direction.down isa Direction
+    @test Direction.left isa Direction
+    @test Direction.right isa Direction
+    @test nameof(Direction.up) == :up
   end
 
   testset("Error") do

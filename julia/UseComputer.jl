@@ -1,4 +1,5 @@
 @use "github.com/JuliaIO/JSON.jl" parse
+@use "github.com/jkroso/Prospects.jl/Enum" @Enum
 @use Dates Millisecond Second
 
 struct Error <: Exception
@@ -65,10 +66,11 @@ press(key::AbstractString; count::Integer=1, delay::Union{Dates.Period,Nothing}=
 
 # Scroll
 
-function scroll(direction::Symbol; amount::Integer=3, at::Union{Tuple{Real,Real},Nothing}=nothing)
-  direction in (:up, :down, :left, :right) || throw(ArgumentError("invalid direction: :$direction"))
+@Enum Direction up down left right
+
+function scroll(direction::Direction; amount::Integer=3, at::Union{Tuple{Real,Real},Nothing}=nothing)
   check(@ccall lib.uc_scroll(
-    String(direction)::Cstring, Cint(amount)::Cint,
+    String(nameof(direction))::Cstring, Cint(amount)::Cint,
     Cdouble(at !== nothing ? at[1] : 0)::Cdouble,
     Cdouble(at !== nothing ? at[2] : 0)::Cdouble,
     Cint(at !== nothing)::Cint)::Cint)
