@@ -1,6 +1,15 @@
-@use "github.com/JuliaIO/JSON.jl" parse
+@use "github.com/jkroso/Prospects.jl" @def @abstract Field ["BitSet" @BitSet]
 @use "github.com/jkroso/Prospects.jl/Enum" @Enum
+@use "github.com/jkroso/JSON.jl" parse_json
 @use Dates Millisecond Second
+
+"""
+A very efficient way of representing every possible keyboard and mouse button combination.
+To test if the user did a cmd+click you write:
+
+  key_state == Keys.cmd|Keys.mouse_left
+"""
+#= punctuation =# @BitSet Keys tilde minus equal left_bracket right_bracket semicolon apostrophe comma period slash backslash times plus a b c d e f g h i j k l m n o p q r s t u v w x y z _0 _1 _2 _3 _4 _5 _6 _7 _8 _9 num0 num1 num2 num3 num4 num5 num6 num7 num8 num9 f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 f13 f14 f15 f16 f17 f18 f19 f20 f21 f22 f23 f24 f25 tab capslock enter shft cmd opt ctrl escape delete backspace space fn home pageup pagedown _end clear eject insert left right up down mouse_left mouse_right mouse_middle
 
 struct Error <: Exception
   msg::String
@@ -27,17 +36,10 @@ function click(x::Real, y::Real; button::Symbol=:left, count::Integer=1)
                              BUTTONS[button]::Cint, Cint(count)::Cint)::Cint)
 end
 
-move(x::Real, y::Real) =
-  check(@ccall lib.uc_mouse_move(Cdouble(x)::Cdouble, Cdouble(y)::Cdouble)::Cint)
-
-hover(x::Real, y::Real) =
-  check(@ccall lib.uc_hover(Cdouble(x)::Cdouble, Cdouble(y)::Cdouble)::Cint)
-
-hold(; button::Symbol=:left) =
-  check(@ccall lib.uc_mouse_down(BUTTONS[button]::Cint)::Cint)
-
-release(; button::Symbol=:left) =
-  check(@ccall lib.uc_mouse_up(BUTTONS[button]::Cint)::Cint)
+move(x::Real, y::Real) = check(@ccall lib.uc_mouse_move(Cdouble(x)::Cdouble, Cdouble(y)::Cdouble)::Cint)
+hover(x::Real, y::Real) = check(@ccall lib.uc_hover(Cdouble(x)::Cdouble, Cdouble(y)::Cdouble)::Cint)
+hold(; button::Symbol=:left) = check(@ccall lib.uc_mouse_down(BUTTONS[button]::Cint)::Cint)
+release(; button::Symbol=:left) = check(@ccall lib.uc_mouse_up(BUTTONS[button]::Cint)::Cint)
 
 function position()
   x = Ref{Cdouble}(0.0)
@@ -80,7 +82,7 @@ end
 
 function readjson(ptr::Ptr{UInt8})
   ptr == C_NULL && throw(Error(lasterror()))
-  result = parse(unsafe_string(ptr))
+  result = parse_json(unsafe_string(ptr))
   @ccall lib.uc_free(ptr::Ptr{UInt8})::Cvoid
   result
 end
